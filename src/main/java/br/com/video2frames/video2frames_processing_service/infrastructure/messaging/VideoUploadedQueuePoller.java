@@ -55,10 +55,6 @@ public class VideoUploadedQueuePoller {
     public void poll() {
         String queueUrl = queueUrls.resolve(queueName);
 
-        // 1 de cada vez: extração de frames é pesada em CPU/IO, então
-        // processamos um vídeo por vez neste poller em vez de paralelizar
-        // dentro do mesmo pod — escalar horizontalmente (mais réplicas do
-        // processing-service) é o jeito certo de ganhar throughput aqui.
         var response = sqsClient.receiveMessage(ReceiveMessageRequest.builder()
                 .queueUrl(queueUrl)
                 .maxNumberOfMessages(1)
