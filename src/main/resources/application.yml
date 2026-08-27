@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: video2frames-processing-service
+  profiles:
+    active: dev
+
+server:
+  port: ${SERVER_PORT:8083}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+aws:
+  region: ${AWS_REGION:us-east-1}
+  endpoint-override: ${AWS_ENDPOINT_OVERRIDE:http://localhost:4566}
+  access-key: ${AWS_ACCESS_KEY_ID:test}
+  secret-key: ${AWS_SECRET_ACCESS_KEY:test}
+  s3:
+    bucket: ${S3_BUCKET:video2frames}
+  sqs:
+    video-uploaded-queue: ${SQS_VIDEO_UPLOADED_QUEUE:video-uploaded}
+    video-processed-queue: ${SQS_VIDEO_PROCESSED_QUEUE:video-processed}
+    video-failed-queue: ${SQS_VIDEO_FAILED_QUEUE:video-failed}
+    poll-wait-time-seconds: 10
+
+app:
+  ffmpeg:
+    # Caminho do binário do ffmpeg. Em Windows local, aponte pro .exe;
+    # na imagem Docker, "ffmpeg" já basta (instalado no PATH).
+    binary-path: ${FFMPEG_PATH:ffmpeg}

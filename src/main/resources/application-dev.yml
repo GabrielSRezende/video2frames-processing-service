@@ -1,0 +1,3 @@
+logging:
+  level:
+    br.com.video2frames.video2frames_processing_service: DEBUG
