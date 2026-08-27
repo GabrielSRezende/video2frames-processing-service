@@ -21,15 +21,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 
-/**
- * Único caso de uso deste serviço: pipeline linear de download -> extração
- * -> compactação -> upload -> publicação do resultado. Qualquer falha em
- * qualquer estágio é tratada da mesma forma: publicamos video-failed com o
- * motivo e NÃO relançamos a exceção — isso é intencional (ver README):
- * uma falha de FFmpeg é determinística (vídeo corrompido não vira válido
- * numa segunda tentativa), então preferimos reportar o erro ao usuário
- * a deixar a mensagem em retry infinito na fila video-uploaded.
- */
 @Component
 public class ProcessVideoUseCase {
 
