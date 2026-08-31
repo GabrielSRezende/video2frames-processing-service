@@ -2,6 +2,7 @@ package br.com.video2frames.video2frames_processing_service.infrastructure.ffmpe
 
 import br.com.video2frames.video2frames_processing_service.application.port.FrameExtractorPort;
 import br.com.video2frames.video2frames_processing_service.domain.exception.VideoProcessingFailedException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -11,6 +12,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @Component
 public class FfmpegFrameExtractor implements FrameExtractorPort {
 
@@ -24,6 +26,8 @@ public class FfmpegFrameExtractor implements FrameExtractorPort {
 
     @Override
     public int extractFrames(Path videoFile, Path outputDir) {
+        log.info("Extraindo frames do vídeo {}", videoFile.getFileName());
+
         List<String> command = List.of(
                 ffmpegBinaryPath,
                 "-i", videoFile.toAbsolutePath().toString(),
@@ -41,24 +45,31 @@ public class FfmpegFrameExtractor implements FrameExtractorPort {
 
             if (!finished) {
                 process.destroyForcibly();
+                log.error("FFmpeg excedeu o tempo limite de {} minutos ao processar {}", TIMEOUT_MINUTES, videoFile.getFileName());
                 throw new VideoProcessingFailedException("Tempo limite excedido ao extrair os frames do vídeo");
             }
             if (process.exitValue() != 0) {
+                log.error("FFmpeg encerrou com código {} ao processar {}. Saída: {}",
+                        process.exitValue(), videoFile.getFileName(), output);
                 throw new VideoProcessingFailedException(
                         "FFmpeg falhou ao processar o vídeo (o arquivo pode estar corrompido ou em formato inválido)");
             }
 
             int frameCount = countFrames(outputDir);
             if (frameCount == 0) {
+                log.warn("Nenhum frame foi extraído do vídeo {}", videoFile.getFileName());
                 throw new VideoProcessingFailedException("Nenhum frame foi extraído do vídeo");
             }
+            log.info("Extração concluída: {} frames gerados a partir de {}", frameCount, videoFile.getFileName());
             return frameCount;
 
         } catch (IOException e) {
+            log.error("Não foi possível executar o FFmpeg (binário: {})", ffmpegBinaryPath, e);
             throw new VideoProcessingFailedException(
                     "Não foi possível executar o FFmpeg — verifique se está instalado e no PATH", e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            log.warn("Extração de frames interrompida para {}", videoFile.getFileName(), e);
             throw new VideoProcessingFailedException("Extração de frames interrompida", e);
         }
     }
