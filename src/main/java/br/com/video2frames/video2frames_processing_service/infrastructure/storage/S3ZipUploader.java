@@ -2,6 +2,7 @@ package br.com.video2frames.video2frames_processing_service.infrastructure.stora
 
 import br.com.video2frames.video2frames_processing_service.application.port.ZipUploadPort;
 import br.com.video2frames.video2frames_processing_service.domain.exception.VideoProcessingFailedException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -11,6 +12,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import java.nio.file.Path;
 import java.util.UUID;
 
+@Slf4j
 @Component
 public class S3ZipUploader implements ZipUploadPort {
 
@@ -30,8 +32,10 @@ public class S3ZipUploader implements ZipUploadPort {
             s3Client.putObject(
                     PutObjectRequest.builder().bucket(bucket).key(key).contentType("application/zip").build(),
                     RequestBody.fromFile(zipFile));
+            log.info("Upload do zip concluído: {}", key);
             return key;
         } catch (RuntimeException e) {
+            log.error("Não foi possível enviar o zip do vídeo {} para o bucket {} (key: {})", videoId, bucket, key, e);
             throw new VideoProcessingFailedException("Não foi possível enviar o arquivo .zip processado", e);
         }
     }

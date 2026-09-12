@@ -6,11 +6,13 @@ import br.com.video2frames.video2frames_processing_service.application.port.Proc
 import br.com.video2frames.video2frames_processing_service.infrastructure.messaging.dto.VideoFailedMessage;
 import br.com.video2frames.video2frames_processing_service.infrastructure.messaging.dto.VideoProcessedMessage;
 import com.google.gson.Gson;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
+@Slf4j
 @Component
 public class SqsProcessingResultPublisher implements ProcessingResultPublisherPort {
 
@@ -45,6 +47,7 @@ public class SqsProcessingResultPublisher implements ProcessingResultPublisherPo
 
     @Override
     public void publishProcessed(VideoProcessedEvent event) {
+        log.info("Publicando evento de sucesso para o vídeo {}", event.videoId());
 
         var message = new VideoProcessedMessage(
                 event.videoId().toString(),
@@ -61,6 +64,7 @@ public class SqsProcessingResultPublisher implements ProcessingResultPublisherPo
 
     @Override
     public void publishFailed(VideoFailedEvent event) {
+        log.info("Publicando evento de falha para o vídeo {}: {}", event.videoId(), event.reason());
 
         var message = new VideoFailedMessage(
                 event.videoId().toString(),
@@ -75,11 +79,16 @@ public class SqsProcessingResultPublisher implements ProcessingResultPublisherPo
     }
 
     private void sendMessage(String queueName, String messageBody) {
-        sqsClient.sendMessage(
-                SendMessageRequest.builder()
-                        .queueUrl(queueUrls.resolve(queueName))
-                        .messageBody(messageBody)
-                        .build()
-        );
+        try {
+            sqsClient.sendMessage(
+                    SendMessageRequest.builder()
+                            .queueUrl(queueUrls.resolve(queueName))
+                            .messageBody(messageBody)
+                            .build()
+            );
+        } catch (RuntimeException e) {
+            log.error("Falha ao publicar mensagem na fila {}", queueName, e);
+            throw e;
+        }
     }
 }

@@ -2,6 +2,7 @@ package br.com.video2frames.video2frames_processing_service.infrastructure.stora
 
 import br.com.video2frames.video2frames_processing_service.application.port.VideoDownloadPort;
 import br.com.video2frames.video2frames_processing_service.domain.exception.VideoProcessingFailedException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -12,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
+@Slf4j
 @Component
 public class S3VideoDownloader implements VideoDownloadPort {
 
@@ -25,6 +27,7 @@ public class S3VideoDownloader implements VideoDownloadPort {
 
     @Override
     public Path download(String videoKey) {
+        log.info("Baixando vídeo {} do bucket {}", videoKey, bucket);
         try {
             Path tempFile = Files.createTempFile("v2f-video-", suffix(videoKey));
 
@@ -33,8 +36,10 @@ public class S3VideoDownloader implements VideoDownloadPort {
                 Files.copy(objectStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
             }
 
+            log.info("Download concluído: {} salvo em {}", videoKey, tempFile);
             return tempFile;
         } catch (IOException | RuntimeException e) {
+            log.error("Não foi possível baixar o vídeo {} do bucket {}", videoKey, bucket, e);
             throw new VideoProcessingFailedException("Não foi possível baixar o vídeo original", e);
         }
     }
