@@ -53,6 +53,10 @@ public class ProcessVideoUseCase {
         Path zipFile = null;
 
         try {
+            if (isSimulatedFailureTrigger(command.fileName())) {
+                throw new VideoProcessingFailedException("Falha simulada para demonstração");
+            }
+
             videoFile = videoDownloadPort.download(job.getVideoKey());
 
             framesDir = Files.createTempDirectory("v2f-frames-" + job.getVideoId());
@@ -77,6 +81,10 @@ public class ProcessVideoUseCase {
             cleanupDir(framesDir);
             cleanup(zipFile);
         }
+    }
+
+    private boolean isSimulatedFailureTrigger(String fileName) {
+        return fileName != null && fileName.toLowerCase().contains("video_erro");
     }
 
     private void cleanup(Path file) {

@@ -21,31 +21,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Poller manual (long-polling), mesmo padrão do video-service — ver o
- * README para a justificativa de não usar Spring Cloud AWS / @SqsListener.
- *
- * Processa até {@code app.processing.concurrency} vídeos em paralelo: cada
- * chamada busca até 10 mensagens (limite do SQS) e submete cada uma para um
- * thread pool de tamanho fixo, em vez de processar uma por vez. Isso é o que
- * permite processar múltiplos vídeos simultaneamente dentro de uma única
- * instância — o pipeline (download → ffmpeg → zip → upload → publish) já é
- * livre de estado compartilhado (arquivos temporários únicos por vídeo,
- * clientes AWS thread-safe), então paralelizar aqui é seguro sem mudar nada
- * no restante do código.
- *
- * Diferente dos pollers do video-service: aqui a mensagem é deletada logo
- * após chamar o use case, independente do resultado (sucesso ou falha),
- * porque o próprio ProcessVideoUseCase já captura toda falha internamente
- * e publica video-failed — ele nunca relança exceção. Só uma falha do
- * PRÓPRIO poller (ex: JSON malformado) deixaria a mensagem para retry.
- *
- * Além da concorrência dentro do processo, o serviço é stateless e segue o
- * padrão "competing consumers": rodar múltiplas réplicas deste serviço
- * (todas consumindo a mesma fila video-uploaded) escala o processamento
- * horizontalmente sem nenhuma mudança de código — ver
- * video2frames-infra-ops para como escalar via Docker Compose.
- */
 @Component
 public class VideoUploadedQueuePoller {
 
@@ -96,7 +71,7 @@ public class VideoUploadedQueuePoller {
             var payload = gson.fromJson(message.body(), VideoUploadedMessage.class);
 
             processVideoUseCase.execute(new ProcessVideoCommand(
-                    UUID.fromString(payload.videoId()), payload.ownerEmail(), payload.videoKey()));
+                    UUID.fromString(payload.videoId()), payload.ownerEmail(), payload.videoKey(), payload.fileName()));
 
             sqsClient.deleteMessage(DeleteMessageRequest.builder()
                     .queueUrl(queueUrl)

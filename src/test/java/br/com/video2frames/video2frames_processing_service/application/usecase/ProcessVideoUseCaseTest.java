@@ -89,7 +89,7 @@ class ProcessVideoUseCaseTest {
 
         ArgumentCaptor<Path> framesDirCaptor = ArgumentCaptor.forClass(Path.class);
 
-        useCase.execute(new ProcessVideoCommand(videoId, ownerEmail, videoKey));
+        useCase.execute(new ProcessVideoCommand(videoId, ownerEmail, videoKey, "meu-video.mp4"));
 
         verify(frameExtractorPort).extractFrames(eq(videoFile), framesDirCaptor.capture());
         Path framesDir = framesDirCaptor.getValue();
@@ -111,7 +111,7 @@ class ProcessVideoUseCaseTest {
 
     @Test
     void execute_quandoComandoInvalido_lancaInvalidProcessingJobExceptionSemPublicarEventos() {
-        ProcessVideoCommand command = new ProcessVideoCommand(null, ownerEmail, videoKey);
+        ProcessVideoCommand command = new ProcessVideoCommand(null, ownerEmail, videoKey, "meu-video.mp4");
 
         assertThatThrownBy(() -> useCase.execute(command))
                 .isInstanceOf(InvalidProcessingJobException.class);
@@ -124,7 +124,7 @@ class ProcessVideoUseCaseTest {
         when(videoDownloadPort.download(videoKey))
                 .thenThrow(new VideoProcessingFailedException("Não foi possível baixar o vídeo original"));
 
-        useCase.execute(new ProcessVideoCommand(videoId, ownerEmail, videoKey));
+        useCase.execute(new ProcessVideoCommand(videoId, ownerEmail, videoKey, "meu-video.mp4"));
 
         ArgumentCaptor<VideoFailedEvent> eventCaptor = ArgumentCaptor.forClass(VideoFailedEvent.class);
         verify(resultPublisherPort).publishFailed(eventCaptor.capture());
@@ -144,7 +144,7 @@ class ProcessVideoUseCaseTest {
         when(frameExtractorPort.extractFrames(eq(videoFile), any(Path.class)))
                 .thenThrow(new VideoProcessingFailedException("Nenhum frame foi extraído do vídeo"));
 
-        useCase.execute(new ProcessVideoCommand(videoId, ownerEmail, videoKey));
+        useCase.execute(new ProcessVideoCommand(videoId, ownerEmail, videoKey, "meu-video.mp4"));
 
         ArgumentCaptor<VideoFailedEvent> eventCaptor = ArgumentCaptor.forClass(VideoFailedEvent.class);
         verify(resultPublisherPort).publishFailed(eventCaptor.capture());
@@ -163,7 +163,7 @@ class ProcessVideoUseCaseTest {
         when(archivePort.zip(any(Path.class), anyString()))
                 .thenThrow(new VideoProcessingFailedException("Não foi possível compactar os frames extraídos"));
 
-        useCase.execute(new ProcessVideoCommand(videoId, ownerEmail, videoKey));
+        useCase.execute(new ProcessVideoCommand(videoId, ownerEmail, videoKey, "meu-video.mp4"));
 
         ArgumentCaptor<VideoFailedEvent> eventCaptor = ArgumentCaptor.forClass(VideoFailedEvent.class);
         verify(resultPublisherPort).publishFailed(eventCaptor.capture());
@@ -183,7 +183,7 @@ class ProcessVideoUseCaseTest {
         when(zipUploadPort.upload(eq(videoId), eq(ownerEmail), eq(zipFile)))
                 .thenThrow(new VideoProcessingFailedException("Não foi possível enviar o arquivo .zip processado"));
 
-        useCase.execute(new ProcessVideoCommand(videoId, ownerEmail, videoKey));
+        useCase.execute(new ProcessVideoCommand(videoId, ownerEmail, videoKey, "meu-video.mp4"));
 
         ArgumentCaptor<VideoFailedEvent> eventCaptor = ArgumentCaptor.forClass(VideoFailedEvent.class);
         verify(resultPublisherPort).publishFailed(eventCaptor.capture());
@@ -194,10 +194,22 @@ class ProcessVideoUseCaseTest {
     }
 
     @Test
+    void execute_quandoNomeDoArquivoContemVideoErro_publicaVideoFailedEventSemChamarOsPorts() {
+        useCase.execute(new ProcessVideoCommand(videoId, ownerEmail, videoKey, "Video_Erro.mp4"));
+
+        ArgumentCaptor<VideoFailedEvent> eventCaptor = ArgumentCaptor.forClass(VideoFailedEvent.class);
+        verify(resultPublisherPort).publishFailed(eventCaptor.capture());
+        verify(resultPublisherPort, never()).publishProcessed(any());
+        verifyNoInteractions(videoDownloadPort, frameExtractorPort, archivePort, zipUploadPort);
+
+        assertThat(eventCaptor.getValue().reason()).isEqualTo("Falha simulada para demonstração");
+    }
+
+    @Test
     void execute_quandoOcorreExcecaoInesperada_publicaVideoFailedEventComMensagemGenerica() {
         when(videoDownloadPort.download(videoKey)).thenThrow(new RuntimeException("erro totalmente inesperado"));
 
-        useCase.execute(new ProcessVideoCommand(videoId, ownerEmail, videoKey));
+        useCase.execute(new ProcessVideoCommand(videoId, ownerEmail, videoKey, "meu-video.mp4"));
 
         ArgumentCaptor<VideoFailedEvent> eventCaptor = ArgumentCaptor.forClass(VideoFailedEvent.class);
         verify(resultPublisherPort).publishFailed(eventCaptor.capture());

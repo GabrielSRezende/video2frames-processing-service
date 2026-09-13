@@ -4,13 +4,6 @@ import br.com.video2frames.video2frames_processing_service.domain.exception.Inva
 
 import java.util.UUID;
 
-/**
- * Este serviço não tem banco de dados (por desenho de arquitetura), então
- * "domínio" aqui é mais enxuto do que no auth-service/video-service: a
- * regra de negócio real é o próprio pipeline de transformação (baixar,
- * extrair, compactar, publicar). Ainda assim, a validação de que um job
- * é bem-formado é regra de negócio genuína, e vive aqui — não no use case.
- */
 public final class VideoProcessingJob {
 
     private final UUID videoId;
