@@ -1,0 +1,65 @@
+{
+  "info": {
+    "name": "video2frames-processing-service",
+    "description": "O processing-service (porta 8083) não tem API REST de negócio. Ele consome a fila SQS video-uploaded, extrai os frames com ffmpeg e publica o resultado em outras filas. Esta coleção traz só os endpoints de monitoramento (Actuator).\n\nPara ver o serviço trabalhando, envie vídeos pela coleção do video-service ou pelo front (http://localhost:4200) e acompanhe os logs do container ou as métricas abaixo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "processingUrl", "value": "http://localhost:8083" }
+  ],
+  "item": [
+    {
+      "name": "Health check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{processingUrl}}/actuator/health",
+          "host": ["{{processingUrl}}"],
+          "path": ["actuator", "health"]
+        },
+        "description": "Estado do serviço. Deve retornar status UP."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Serviço no ar', function () {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json().status).to.eql('UP');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Métricas Prometheus",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{processingUrl}}/actuator/prometheus",
+          "host": ["{{processingUrl}}"],
+          "path": ["actuator", "prometheus"]
+        },
+        "description": "Métricas no formato lido pelo Prometheus (uso de memória, threads, requisições HTTP e outras)."
+      }
+    },
+    {
+      "name": "Lista de métricas",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{processingUrl}}/actuator/metrics",
+          "host": ["{{processingUrl}}"],
+          "path": ["actuator", "metrics"]
+        },
+        "description": "Nomes das métricas disponíveis no Actuator."
+      }
+    }
+  ]
+}
