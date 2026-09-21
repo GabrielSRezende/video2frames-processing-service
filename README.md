@@ -207,6 +207,10 @@ Nesse caso é necessário:
 | `LOG_LEVEL_ROOT` | `INFO` | Nível de log raiz |
 | `LOG_FORMAT` | *(vazio)* | Formato de log estruturado (ver seção Logging) |
 
+## Collection do Postman
+
+A pasta `postman/` tem uma collection para importar (Postman > Import > `postman/video2frames-processing-service.postman_collection.json`). Como este serviço não tem API REST de negócio (ele consome filas SQS), a coleção traz só os endpoints do Actuator: health e métricas.
+
 ## Testes
 
 ```bash
